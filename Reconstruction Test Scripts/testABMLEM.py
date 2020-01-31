@@ -41,11 +41,6 @@ p = N
 BL = -100*(1 + 1j)
 BU = 100*(1 + 1j)
 
-
-#-------------------------------
-#load kspace data
-from scipy.io import loadmat
-
 #load Cartesian data
 #Attention: You must ensure the kspace data is correctly centered or not centered.
 image = shepp_logan(N)

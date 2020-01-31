@@ -100,17 +100,17 @@ indexer = 1200
 
 recon = np.zeros_like(images, np.complex)
 firstRecon = np.zeros_like(images, np.complex)
-
+fractalMine = np.array(fractalMine, np.complex)
 # Reconstruct each of the brain images
 start = time.time()
 for i, F in enumerate(undersampleF):
     if i >= 1200 and i < 1201:
-        recon[i, :, :], firstRecon[i, :, :] = iterative.sirt_fft_complex(it, N, F, fractalMine, t, 3, 5, h=6)
+        recon[i, :, :], firstRecon[i, :, :] = iterative.tf_sirt_fft_complex(it, N, F, fractalMine, t, 3, 5, h=6)
         print("Image number: ", i)
 
 end = time.time()
 elapsed = end - start
-print("FFTSIRT Reconstruction took " + str(elapsed) + " secs or " + str(elapsed/60) + " mins")  
+print("FFT SIRT Reconstruction took " + str(elapsed) + " secs or " + str(elapsed/60) + " mins")  
 mse = imageio.immse(np.abs(images[indexer, :, :]), np.abs(recon[indexer, :, :]))
 ssim = imageio.imssim(np.abs(images[indexer, :, :]).astype(float), np.abs(recon[indexer, :, :]).astype(float))
 psnr = imageio.impsnr(np.abs(images[indexer, :, :]), np.abs(recon[indexer, :, :]))

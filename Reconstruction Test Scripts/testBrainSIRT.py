@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Load Brain images and test FFT SIRT reconstruction from square fractal sampling
+Load Brain images and test ABfMLEM reconstruction from square fractal sampling
 
 @author: marlon
 """
@@ -50,6 +50,7 @@ drtSpace = np.zeros((num_cases, projs, p), np.complex)
 centered = False
 lines, angles, mValues, fractalMine, R, oversampleFilter = farey_fractal(N, 10, centered=centered)
 lines = np.array(lines)
+
 #-------------------------------
 maxValues = []
 minValues = []
@@ -58,7 +59,7 @@ print("Computing Chaotic Reconstruction...")
 
 
 for k, image in enumerate(images):
-    if k >= 1200 and k < 1201:
+    if k >= 1200 and k < 1203:
             
         print("Loading image: ", k)
         images[k, :, :] /= np.max(image)
@@ -79,46 +80,38 @@ print("Images Max Value:", np.max(maxValues))
 print("Images Min Value:", np.min(minValues))
 
 
-#-------------------------------
-#compute lines
-centered = False
-
-# Generate the fractal
-lines, angles, mValues, fractalMine, R, oversampleFilter = farey_fractal(N, 10, centered=centered)
-lines = np.array(lines)
 # Sample kspace
 undersampleF = np.zeros_like(dftSpace, np.complex)
 undersampleF = dftSpace * fractalMine
 
 print("Samples used: ", R)
 
-t = (N**2)*1.5 # reduction factor 0.5
+t = 150
 it = 251
 indexer = 1200
-#t = 50 # reduction factor 0.18
-#it = 1250
-
 recon = np.zeros_like(images, np.complex)
 firstRecon = np.zeros_like(images, np.complex)
 
 # Reconstruct each of the brain images
 start = time.time()
-for i, F in enumerate(undersampleF):
+for i, g_j in enumerate(drtSpace):
     if i >= 1200 and i < 1201:
-        recon[i, :, :], firstRecon[i, :, :] = iterative.sirt_fft_complex(it, N, F, fractalMine, t, 3, 5, h=6)
+        recon[i, :, :], firstRecon[i, :, :] = iterative.sirt_frt_complex(it, N, g_j, mValues, t, 3, 5, oversampleFilter, h=6)
         print("Image number: ", i)
-
+    
 end = time.time()
 elapsed = end - start
-print("FFTSIRT Reconstruction took " + str(elapsed) + " secs or " + str(elapsed/60) + " mins")  
+print("SIRT Reconstruction took " + str(elapsed) + " secs or " + str(elapsed/60) + " mins")
+recon = np.abs(recon)
+images = np.abs(images)
+diff = np.abs(images - recon)
+
 mse = imageio.immse(np.abs(images[indexer, :, :]), np.abs(recon[indexer, :, :]))
 ssim = imageio.imssim(np.abs(images[indexer, :, :]).astype(float), np.abs(recon[indexer, :, :]).astype(float))
 psnr = imageio.impsnr(np.abs(images[indexer, :, :]), np.abs(recon[indexer, :, :]))
 print("RMSE:", math.sqrt(mse))
 print("SSIM:", ssim)
 print("PSNR:", psnr)
-
-diff = np.abs(images - recon)
 
 plt.figure(2)
 plt.imshow(np.abs(recon[indexer, :, :]))
@@ -131,7 +124,7 @@ plt.imshow(np.abs(diff[indexer, :, :]))
 plt.figure(10)
 plt.imshow(np.abs(fftpack.ifft2(dftSpace[indexer, :, :] * fractalMine)))
 
-# Plot prediction results
+# # Plot prediction results
 # fig, ax = plt.subplots(1, 3, sharex=True, sharey=True, figsize=(12,5))
 # for i in range(1200, 1203):
 #     index = int(i)
@@ -144,6 +137,6 @@ plt.imshow(np.abs(fftpack.ifft2(dftSpace[indexer, :, :] * fractalMine)))
 #     ax[1].set_title("Ground truth")
 #     ax[2].set_title("Prediction")
 #     fig.tight_layout()
-#     output_path = "output_fftsirt/test_number_"+str(index)+'.png'
+#     output_path = "output_abmlem/test_number_"+str(index)+'.png'
 #     fig.savefig(output_path)
 #     plt.close(fig)

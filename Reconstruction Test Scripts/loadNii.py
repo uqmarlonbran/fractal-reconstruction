@@ -9,9 +9,20 @@ Loading nii images
 import os
 import numpy as np
 import nibabel as nib
+import pyfftw
+import scipy.fftpack as fftpack
+
+# Monkey patch in fftn and ifftn from pyfftw.interfaces.scipy_fftpack
+fftpack.fft2 = pyfftw.interfaces.scipy_fftpack.fft2
+fftpack.ifft2 = pyfftw.interfaces.scipy_fftpack.ifft2
+fftpack.fft = pyfftw.interfaces.scipy_fftpack.fft
+fftpack.ifft = pyfftw.interfaces.scipy_fftpack.ifft
+
+# Turn on the cache for optimum performance
+pyfftw.interfaces.cache.enable()
 
 '''
-Reads data from nii, assuming it is single images.
+Reads data from nii, assuming it is single images with one channel.
 '''
 def load_data(foldername):
     input_names = []
@@ -29,7 +40,31 @@ def load_data(foldername):
     
     count = 0
     for input_name in input_names:
-        inputs[count, :, :] = np.abs(nib.load(input_name).get_data())
+        inputs[count, :, :] = (nib.load(input_name).get_data())
+        count += 1
+    print("Loaded ", count, "training images")
+    return inputs, num_cases
+
+'''
+Reads data from nii, assumes multiple channels
+'''
+def load_data_channels(foldername):
+    input_names = []
+
+    for path, subdirs, files in os.walk(foldername + '/'):
+        for name in files:
+            input_names.append(os.path.join(path, name))
+    
+    num_cases = len(input_names)
+    
+    first_case = np.abs(nib.load(input_names[0]).get_data())
+    channels, rows, cols = first_case.shape
+    
+    inputs = np.zeros([num_cases, channels, rows, cols], np.complex)
+    
+    count = 0
+    for input_name in input_names:
+        inputs[count, :, :, :] = fftpack.ifftshift(nib.load(input_name).get_data())
         count += 1
     print("Loaded ", count, "training images")
     return inputs, num_cases
